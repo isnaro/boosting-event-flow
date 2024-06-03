@@ -15,6 +15,7 @@ const client = new Client({
 });
 
 const testBoostPrefix = '?'; // Prefix for test boost command
+const boostChannelId = '1201162198647590952'; // Hardcoded boost channel ID
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -24,6 +25,7 @@ client.once('ready', () => {
 // Listener for new boosts
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
     if (!oldMember.premiumSince && newMember.premiumSince) {
+        console.log(`Member ${newMember.user.tag} has started boosting.`);
         sendBoostEmbed(newMember);
     }
 });
@@ -36,7 +38,6 @@ async function sendBoostEmbed(member) {
             return;
         }
 
-        const boostChannelId = process.env.BOOST_CHANNEL_ID;
         const boostChannel = member.guild.channels.cache.get(boostChannelId);
         if (!boostChannel) {
             console.error('Boost channel not found');
