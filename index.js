@@ -16,6 +16,7 @@ const client = new Client({
 
 const testBoostPrefix = '?'; // Prefix for test boost command
 const boostChannelId = '1201162198647590952'; // Hardcoded boost channel ID
+const serverId = '758051172803411998'; // Server ID
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -25,8 +26,12 @@ client.once('ready', () => {
 // Listener for new boosts
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
     if (!oldMember.premiumSince && newMember.premiumSince) {
-        console.log(`Member ${newMember.user.tag} has started boosting.`);
-        sendBoostEmbed(newMember);
+        console.log(`Member ${newMember.user.tag} has started boosting in guild ${newMember.guild.id}.`);
+        if (newMember.guild.id === serverId) {
+            sendBoostEmbed(newMember);
+        } else {
+            console.log(`Boost not in target guild: ${newMember.guild.id}`);
+        }
     }
 });
 
@@ -37,6 +42,8 @@ async function sendBoostEmbed(member) {
             console.error('Guild not found for member');
             return;
         }
+
+        console.log(`Sending boost embed for member ${member.user.tag} in guild ${member.guild.id}`);
 
         const boostChannel = member.guild.channels.cache.get(boostChannelId);
         if (!boostChannel) {
