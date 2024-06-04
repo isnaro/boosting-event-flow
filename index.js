@@ -1,6 +1,5 @@
 const { Client, GatewayIntentBits, Partials, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
-const moment = require('moment-timezone');
 require('dotenv').config();
 const keepAlive = require('./keep_alive'); // Import keep_alive.js
 
@@ -22,6 +21,9 @@ const commandChannelId = '1201097582244540426'; // Channel ID for the command
 const adminCommandChannelId = '1238929943795204156'; // Admin commands channel ID
 const rolesFilePath = './roles.json'; // Path to the roles tracking file
 const boosterParentRoleId = '1230560850201415680'; // Parent role ID under which custom roles should appear
+
+const basicBoosterRoleId = '1247590901165850767'; // ☄️・Basic Booster role ID
+const premiumBoosterRoleId = '1247588473297309718'; // 💎・Premium Booster role ID
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -47,49 +49,76 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
     if (!oldMember.premiumSince && newMember.premiumSince) {
         console.log(`Member ${newMember.user.tag} has started boosting in guild ${newMember.guild.id}.`);
         if (newMember.guild.id === serverId) {
-            sendBoostEmbed(newMember);
+            handleBoostUpdate(newMember);
         } else {
             console.log(`Boost not in target guild: ${newMember.guild.id}`);
+        }
+    } else if (oldMember.premiumSince && !newMember.premiumSince) {
+        console.log(`Member ${newMember.user.tag} has stopped boosting in guild ${newMember.guild.id}.`);
+        if (newMember.guild.id === serverId) {
+            handleBoostRemoval(newMember);
+        } else {
+            console.log(`Boost removal not in target guild: ${newMember.guild.id}`);
         }
     }
 });
 
-// Function to send boost embed
-async function sendBoostEmbed(member) {
-    try {
-        if (!member.guild) {
-            console.error('Guild not found for member');
-            return;
+// Function to handle boost updates
+async function handleBoostUpdate(member) {
+    const boosts = member.premiumSinceTimestamp ? 1 : 0;
+    if (boosts >= 2) {
+        await member.roles.add(premiumBoosterRoleId);
+        await member.roles.remove(basicBoosterRoleId);
+    } else if (boosts === 1) {
+        await member.roles.add(basicBoosterRoleId);
+    }
+    updateGiftingLimits(member);
+}
+
+// Function to handle boost removals
+async function handleBoostRemoval(member) {
+    const boosts = member.premiumSinceTimestamp ? 1 : 0;
+    if (boosts === 1) {
+        await member.roles.add(basicBoosterRoleId);
+        await member.roles.remove(premiumBoosterRoleId);
+        updateGiftingLimits(member);
+    } else {
+        await member.roles.remove(basicBoosterRoleId);
+        await member.roles.remove(premiumBoosterRoleId);
+        await removeCustomRole(member);
+    }
+}
+
+// Function to remove custom role
+async function removeCustomRole(member) {
+    if (rolesData[member.id] && rolesData[member.id].roleId) {
+        const role = await member.guild.roles.fetch(rolesData[member.id].roleId);
+        if (role) {
+            await role.delete();
         }
+        delete rolesData[member.id];
+        saveRolesData();
+    }
+}
 
-        console.log(`Sending boost embed for member ${member.user.tag} in guild ${member.guild.id}`);
+// Function to update gifting limits
+async function updateGiftingLimits(member) {
+    const userRoles = rolesData[member.id] || { roleId: null, giftedTo: [], boosts: 0 };
+    const isPremium = member.roles.cache.has(premiumBoosterRoleId);
+    const maxGifts = isPremium ? 10 : 3;
 
-        const boostChannel = member.guild.channels.cache.get(boostChannelId);
-        if (!boostChannel) {
-            console.error('Boost channel not found');
-            return;
+    if (userRoles.giftedTo.length > maxGifts) {
+        const role = await member.guild.roles.fetch(userRoles.roleId);
+        if (role) {
+            const usersToRemove = userRoles.giftedTo.slice(maxGifts);
+            for (const userId of usersToRemove) {
+                const user = await member.guild.members.fetch(userId);
+                await user.roles.remove(role);
+            }
+            userRoles.giftedTo = userRoles.giftedTo.slice(0, maxGifts);
+            rolesData[member.id] = userRoles;
+            saveRolesData();
         }
-
-        const embed = new EmbedBuilder()
-            .setTitle('NEW Server Boost!')
-            .setDescription(`A big thanks to ${member} for helping out with the Flow server upgrade! The community will really appreciate it`)
-            .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-            .setImage('https://media.discordapp.net/attachments/470983675157151755/1229087659977085078/mf8Uagt.png?ex=66569dd5&is=66554c55&hm=bbbbf8319f421641ce5a9762eaddd701a03e50479d377fdeb545e16d359973c6&format=webp&quality=lossless&width=889&height=554&')
-            .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
-            .setTimestamp();
-
-        const boostButton = new ButtonBuilder()
-            .setStyle(ButtonStyle.Primary)
-            .setLabel('Boosting Advantages')
-            .setEmoji('1229089677630505032')
-            .setCustomId('boosting_advantages');
-
-        const row = new ActionRowBuilder().addComponents(boostButton);
-
-        await boostChannel.send({ embeds: [embed], components: [row] });
-        console.log(`Boost embed sent to channel ${boostChannelId}`);
-    } catch (error) {
-        console.error('Error sending boost embed:', error);
     }
 }
 
@@ -148,12 +177,12 @@ client.on('messageCreate', async message => {
                 userRoles.roleId = role.id;
                 rolesData[message.member.id] = userRoles;
                 saveRolesData();
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully created the role ${role.name}`);
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully created the role **${role.name}**`);
                 return;
             }
 
             if (!userRoles.roleId) {
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You must first create a custom role using the "role name <role-name>" command.`);
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You must first create a custom role using the \`role name <role-name>\` command.`);
                 return;
             }
 
@@ -165,7 +194,7 @@ client.on('messageCreate', async message => {
                     return;
                 }
                 await role.setColor(subValue);
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully set the color to ${subValue}`);
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully set the color to **${subValue}**`);
                 return;
             }
 
@@ -184,7 +213,6 @@ client.on('messageCreate', async message => {
                     return;
                 }
             }
-
             if (subAction === 'gift') {
                 const mentionedUser = message.mentions.members.first();
                 if (!mentionedUser) {
@@ -192,22 +220,15 @@ client.on('messageCreate', async message => {
                     return;
                 }
 
-                const memberBoosts = message.member.premiumSinceTimestamp ? 1 : 0;
-                if (userRoles.boosts < memberBoosts) {
-                    userRoles.boosts = memberBoosts;
-                    rolesData[message.member.id] = userRoles;
-                    saveRolesData();
-                }
+                const isPremium = message.member.roles.cache.has(premiumBoosterRoleId);
+                const maxGifts = isPremium ? 10 : 3;
 
-                const maxGifts = userRoles.boosts === 1 ? 4 : 10;
                 if (userRoles.giftedTo.length >= maxGifts) {
                     await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You have reached the maximum number of gifts.`);
                     return;
                 }
 
                 await mentionedUser.roles.add(role);
-                userRoles.giftedTo.push(mentionedUser.id);
-               
                 userRoles.giftedTo.push(mentionedUser.id);
                 rolesData[message.member.id] = userRoles;
                 saveRolesData();
@@ -269,7 +290,7 @@ client.on('messageCreate', async message => {
                     { name: 'Update Role Name', value: '`role name <role-name>`: Update the name of your custom role.' },
                     { name: 'Set Role Color', value: '`role color <hex-code>`: Set the color of your custom role using a hex code.' },
                     { name: 'Set Role Icon', value: '`role icon <image-link or upload>`: Set the icon of your custom role using an image link or upload.' },
-                    { name: 'Gift Role', value: '`role gift <user-mention>`: Gift your custom role to a specified user. You can gift the role to up to 4 friends if you have boosted once, and up to 10 friends if you have boosted twice.' },
+                    { name: 'Gift Role', value: '`role gift <user-mention>`: Gift your custom role to a specified user. You can gift the role to up to 3 friends if you have boosted once, and up to 10 friends if you have boosted twice.' },
                     { name: 'Remove Role', value: '`role remove <user-mention>`: Remove the custom role from a specified user, freeing up a slot for another friend.' },
                     { name: 'Delete Role', value: '`role delete`: Delete your custom role.' }
                 )
