@@ -19,11 +19,26 @@ const boostChannelId = '1201162198647590952'; // Hardcoded boost channel ID
 const serverId = '758051172803411998'; // Server ID
 const boosterRoleId = '1228815979426087052'; // Role ID for server boosters
 const commandChannelId = '1201097582244540426'; // Channel ID for the command
+const rolesFilePath = './roles.json'; // Path to the roles tracking file
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
     keepAlive(); // Call the keepAlive function
+    loadRolesData();
 });
+
+// Load roles data from file
+let rolesData = {};
+function loadRolesData() {
+    if (fs.existsSync(rolesFilePath)) {
+        rolesData = JSON.parse(fs.readFileSync(rolesFilePath, 'utf8'));
+    }
+}
+
+// Save roles data to file
+function saveRolesData() {
+    fs.writeFileSync(rolesFilePath, JSON.stringify(rolesData, null, 2));
+}
 
 // Listener for new boosts
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
@@ -104,34 +119,36 @@ client.on('messageCreate', async message => {
     if (message.channel.id === commandChannelId && message.member.roles.cache.has(boosterRoleId)) {
         const args = message.content.trim().split(/ +/);
         const subCommand = args.shift().toLowerCase();
+        const subAction = args.shift().toLowerCase();
+        const subValue = args.join(' ');
+
+        let userRoles = rolesData[message.member.id] || { roleId: null, giftedTo: [], boosts: 0 };
 
         if (subCommand === 'custom') {
-            const subAction = args.shift().toLowerCase();
-            const subValue = args.join(' ');
-
-            let role = message.member.roles.cache.find(r => r.name.startsWith('Booster-'));
-
-            if (!role && subAction !== 'name') {
-                return message.reply('You must first create a custom role using the "custom name <role-name>" command.');
-            }
-
             if (subAction === 'name') {
+                if (userRoles.roleId && await message.guild.roles.fetch(userRoles.roleId)) {
+                    return message.reply('You can only create one custom role.');
+                }
                 if (!subValue) {
                     return message.reply('Please provide a role name.');
                 }
-                if (!role) {
-                    role = await message.guild.roles.create({
-                        name: `Booster-${subValue}`,
-                        color: '#FFFFFF',
-                        permissions: []
-                    });
-                    await message.member.roles.add(role);
-                    return message.reply(`Successfully created the role ${role.name}`);
-                } else {
-                    await role.setName(`Booster-${subValue}`);
-                    return message.reply(`Successfully updated the role name to ${role.name}`);
-                }
+                const role = await message.guild.roles.create({
+                    name: subValue,
+                    color: '#FFFFFF',
+                    permissions: []
+                });
+                await message.member.roles.add(role);
+                userRoles.roleId = role.id;
+                rolesData[message.member.id] = userRoles;
+                saveRolesData();
+                return message.reply(`Successfully created the role ${role.name}`);
             }
+
+            if (!userRoles.roleId) {
+                return message.reply('You must first create a custom role using the "custom name <role-name>" command.');
+            }
+
+            const role = await message.guild.roles.fetch(userRoles.roleId);
 
             if (subAction === 'color') {
                 if (!/^#[0-9A-F]{6}$/i.test(subValue)) {
@@ -152,6 +169,35 @@ client.on('messageCreate', async message => {
                 } else {
                     return message.reply('Please provide an image link or upload an image.');
                 }
+            }
+
+            if (subAction === 'gift') {
+                const friend = await message.guild.members.fetch(subValue).catch(err => {
+                    console.error('Error fetching user:', err);
+                    return null;
+                });
+
+                if (!friend) {
+                    return message.reply('User not found.');
+                }
+
+                const memberBoosts = message.member.premiumSinceTimestamp ? 1 : 0;
+                if (userRoles.boosts < memberBoosts) {
+                    userRoles.boosts = memberBoosts;
+                    rolesData[message.member.id] = userRoles;
+                    saveRolesData();
+                }
+
+                const maxGifts = userRoles.boosts === 1 ? 4 : 10;
+                if (userRoles.giftedTo.length >= maxGifts) {
+                    return message.reply('You have reached the maximum number of gifts.');
+                }
+
+                await friend.roles.add(role);
+                userRoles.giftedTo.push(friend.id);
+                rolesData[message.member.id] = userRoles;
+                saveRolesData();
+                return message.reply(`Successfully gifted the role to ${friend.user.tag}`);
             }
         }
     }
