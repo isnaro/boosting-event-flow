@@ -13,6 +13,7 @@ const client = new Client({
     partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
+const testBoostPrefix = '?'; // Prefix for test boost command
 const boostChannelId = '1201162198647590952'; // Hardcoded boost channel ID
 const serverId = '758051172803411998'; // Server ID
 const boosterRoleId = '1228815979426087052'; // Role ID for server boosters
@@ -49,7 +50,6 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
         console.log(`Member ${newMember.user.tag} has started boosting in guild ${newMember.guild.id}.`);
         if (newMember.guild.id === serverId) {
             handleBoostUpdate(newMember);
-            sendBoostEmbed(newMember);
         } else {
             console.log(`Boost not in target guild: ${newMember.guild.id}`);
         }
@@ -119,38 +119,6 @@ async function updateGiftingLimits(member) {
             rolesData[member.id] = userRoles;
             saveRolesData();
         }
-    }
-}
-
-// Function to send boost embed
-async function sendBoostEmbed(member) {
-    try {
-        const boostChannel = member.guild.channels.cache.get(boostChannelId);
-        if (!boostChannel) {
-            console.error('Boost channel not found');
-            return;
-        }
-
-        const embed = new EmbedBuilder()
-            .setTitle('NEW Server Boost!')
-            .setDescription(`A big thanks to ${member} for helping out with the Flow server upgrade! The community will really appreciate it`)
-            .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-            .setImage('https://media.discordapp.net/attachments/470983675157151755/1229087659977085078/mf8Uagt.png?ex=66569dd5&is=66554c55&hm=bbbbf8319f421641ce5a9762eaddd701a03e50479d377fdeb545e16d359973c6&format=webp&quality=lossless&width=889&height=554&')
-            .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
-            .setTimestamp();
-
-        const boostButton = new ButtonBuilder()
-            .setStyle(ButtonStyle.Primary)
-            .setLabel('Boosting Advantages')
-            .setEmoji('1229089677630505032')
-            .setCustomId('boosting_advantages');
-
-        const row = new ActionRowBuilder().addComponents(boostButton);
-
-        await boostChannel.send({ embeds: [embed], components: [row] });
-        console.log(`Boost embed sent to channel ${boostChannelId}`);
-    } catch (error) {
-        console.error('Error sending boost embed:', error);
     }
 }
 
@@ -245,7 +213,6 @@ client.on('messageCreate', async message => {
                     return;
                 }
             }
-
             if (subAction === 'gift') {
                 const mentionedUser = message.mentions.members.first();
                 if (!mentionedUser) {
