@@ -19,6 +19,7 @@ const boostChannelId = '1201162198647590952'; // Hardcoded boost channel ID
 const serverId = '758051172803411998'; // Server ID
 const boosterRoleId = '1228815979426087052'; // Role ID for server boosters
 const commandChannelId = '1201097582244540426'; // Channel ID for the command
+const adminCommandChannelId = '1238929943795204156'; // Admin commands channel ID
 const rolesFilePath = './roles.json'; // Path to the roles tracking file
 const boosterParentRoleId = '1230560850201415680'; // Parent role ID under which custom roles should appear
 
@@ -117,7 +118,7 @@ client.on('messageCreate', async message => {
     }
 
     // Handle custom role commands for boosters
-    if (message.channel.id === commandChannelId && message.member.roles.cache.has(boosterRoleId)) {
+    if ((message.channel.id === commandChannelId || message.channel.id === adminCommandChannelId) && message.member.roles.cache.has(boosterRoleId)) {
         const args = message.content.trim().split(/ +/);
         const subCommand = args.shift().toLowerCase();
         const subAction = args.shift().toLowerCase();
@@ -206,6 +207,8 @@ client.on('messageCreate', async message => {
 
                 await mentionedUser.roles.add(role);
                 userRoles.giftedTo.push(mentionedUser.id);
+               
+                userRoles.giftedTo.push(mentionedUser.id);
                 rolesData[message.member.id] = userRoles;
                 saveRolesData();
                 await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully gifted the role to ${mentionedUser.user.tag} ${userRoles.giftedTo.length}/${maxGifts}`);
@@ -228,6 +231,32 @@ client.on('messageCreate', async message => {
                 await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully deleted your custom role.`);
                 return;
             }
+
+            if (subAction === 'remove') {
+                const mentionedUser = message.mentions.members.first();
+                if (!mentionedUser) {
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please mention a user to remove the role from.`);
+                    return;
+                }
+
+                if (!userRoles.giftedTo.includes(mentionedUser.id)) {
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> The mentioned user does not have the role.`);
+                    return;
+                }
+
+                const role = await message.guild.roles.fetch(userRoles.roleId);
+                if (!role) {
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Custom role not found.`);
+                    return;
+                }
+
+                await mentionedUser.roles.remove(role);
+                userRoles.giftedTo = userRoles.giftedTo.filter(id => id !== mentionedUser.id);
+                rolesData[message.member.id] = userRoles;
+                saveRolesData();
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully removed the role from ${mentionedUser.user.tag}.`);
+                return;
+            }
         }
 
         // Handle boost help command
@@ -241,6 +270,7 @@ client.on('messageCreate', async message => {
                     { name: 'Set Role Color', value: '`role color <hex-code>`: Set the color of your custom role using a hex code.' },
                     { name: 'Set Role Icon', value: '`role icon <image-link or upload>`: Set the icon of your custom role using an image link or upload.' },
                     { name: 'Gift Role', value: '`role gift <user-mention>`: Gift your custom role to a specified user. You can gift the role to up to 4 friends if you have boosted once, and up to 10 friends if you have boosted twice.' },
+                    { name: 'Remove Role', value: '`role remove <user-mention>`: Remove the custom role from a specified user, freeing up a slot for another friend.' },
                     { name: 'Delete Role', value: '`role delete`: Delete your custom role.' }
                 )
                 .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
