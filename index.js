@@ -20,6 +20,7 @@ const serverId = '758051172803411998'; // Server ID
 const boosterRoleId = '1228815979426087052'; // Role ID for server boosters
 const commandChannelId = '1201097582244540426'; // Channel ID for the command
 const rolesFilePath = './roles.json'; // Path to the roles tracking file
+const boosterParentRoleId = '1230560850201415680'; // Parent role ID under which custom roles should appear
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -135,7 +136,8 @@ client.on('messageCreate', async message => {
                 const role = await message.guild.roles.create({
                     name: subValue,
                     color: '#FFFFFF',
-                    permissions: []
+                    permissions: [],
+                    position: (await message.guild.roles.fetch(boosterParentRoleId)).position - 1
                 });
                 await message.member.roles.add(role);
                 userRoles.roleId = role.id;
@@ -201,17 +203,36 @@ client.on('messageCreate', async message => {
             }
         }
     }
+
+    // Handle boost help command
+    if (subCommand === 'boost' && subAction === 'help') {
+        const embed = new EmbedBuilder()
+            .setTitle('Boosting Roles Help')
+            .setDescription('Here is the full help about the boosting roles:')
+            .addFields(
+                { name: 'Create Custom Role', value: '`custom name <role-name>`: Create a custom role with the specified name.' },
+                { name: 'Update Role Name', value: '`custom name <role-name>`: Update the name of your custom role.' },
+                { name: 'Set Role Color', value: '`custom color <hex-code>`: Set the color of your custom role using a hex code.' },
+                { name: 'Set Role Icon', value: '`custom icon <image-link or upload>`: Set the icon of your custom role using an image link or upload.' },
+                { name: 'Gift Role', value: '`custom gift <user-id>`: Gift your custom role to a specified user. You can gift the role to up to 4 friends if you have boosted once, and up to 10 friends if you have boosted twice.' }
+            )
+            .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
+            .setTimestamp();
+
+        return message.reply({ embeds: [embed] });
+    }
+}
 });
 
 // Button interaction listener
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isButton()) return;
+if (!interaction.isButton()) return;
 
-    if (interaction.customId === 'boosting_advantages') {
-        if (!interaction.replied) {
-            await interaction.reply({ content: 'Check the boosting advantages from here: <#1201478443532029974>', ephemeral: true });
-        }
+if (interaction.customId === 'boosting_advantages') {
+    if (!interaction.replied) {
+        await interaction.reply({ content: 'Check the boosting advantages from here: <#1201478443532029974>', ephemeral: true });
     }
+}
 });
 
 client.login(process.env.DISCORD_TOKEN);
