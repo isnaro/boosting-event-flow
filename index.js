@@ -126,12 +126,16 @@ client.on('messageCreate', async message => {
         let userRoles = rolesData[message.member.id] || { roleId: null, giftedTo: [], boosts: 0 };
 
         if (subCommand === 'role') {
+            const loadingMessage = await message.reply('<a:FLOW_Boosts:1240791270822117386>');
+
             if (subAction === 'name') {
                 if (userRoles.roleId && await message.guild.roles.fetch(userRoles.roleId)) {
-                    return message.reply('You can only create one custom role.');
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You can only create one custom role.`);
+                    return;
                 }
                 if (!subValue) {
-                    return message.reply('Please provide a role name.');
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please provide a role name.`);
+                    return;
                 }
                 const role = await message.guild.roles.create({
                     name: subValue,
@@ -143,40 +147,48 @@ client.on('messageCreate', async message => {
                 userRoles.roleId = role.id;
                 rolesData[message.member.id] = userRoles;
                 saveRolesData();
-                return message.reply(`Successfully created the role ${role.name}`);
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully created the role ${role.name}`);
+                return;
             }
 
             if (!userRoles.roleId) {
-                return message.reply('You must first create a custom role using the "role name <role-name>" command.');
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You must first create a custom role using the "role name <role-name>" command.`);
+                return;
             }
 
             const role = await message.guild.roles.fetch(userRoles.roleId);
 
             if (subAction === 'color') {
                 if (!/^#[0-9A-F]{6}$/i.test(subValue)) {
-                    return message.reply('Please provide a valid hex color code.');
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please provide a valid hex color code.`);
+                    return;
                 }
                 await role.setColor(subValue);
-                return message.reply(`Successfully set the color to ${subValue}`);
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully set the color to ${subValue}`);
+                return;
             }
 
             if (subAction === 'icon') {
                 if (message.attachments.size > 0) {
                     const iconUrl = message.attachments.first().url;
                     await role.setIcon(iconUrl);
-                    return message.reply(`Successfully set the icon to the uploaded image.`);
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully set the icon to the uploaded image.`);
+                    return;
                 } else if (subValue) {
                     await role.setIcon(subValue);
-                    return message.reply(`Successfully set the icon to ${subValue}`);
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully set the icon to ${subValue}`);
+                    return;
                 } else {
-                    return message.reply('Please provide an image link or upload an image.');
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please provide an image link or upload an image.`);
+                    return;
                 }
             }
 
             if (subAction === 'gift') {
                 const mentionedUser = message.mentions.members.first();
                 if (!mentionedUser) {
-                    return message.reply('Please mention a user to gift the role to.');
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please mention a user to gift the role to.`);
+                    return;
                 }
 
                 const memberBoosts = message.member.premiumSinceTimestamp ? 1 : 0;
@@ -188,14 +200,33 @@ client.on('messageCreate', async message => {
 
                 const maxGifts = userRoles.boosts === 1 ? 4 : 10;
                 if (userRoles.giftedTo.length >= maxGifts) {
-                    return message.reply('You have reached the maximum number of gifts.');
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You have reached the maximum number of gifts.`);
+                    return;
                 }
 
                 await mentionedUser.roles.add(role);
                 userRoles.giftedTo.push(mentionedUser.id);
                 rolesData[message.member.id] = userRoles;
                 saveRolesData();
-                return message.reply(`Successfully gifted the role to ${mentionedUser.user.tag} ${userRoles.giftedTo.length}/${maxGifts}`);
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully gifted the role to ${mentionedUser.user.tag} ${userRoles.giftedTo.length}/${maxGifts}`);
+                return;
+            }
+
+            if (subAction === 'delete') {
+                if (!userRoles.roleId) {
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You don't have a custom role to delete.`);
+                    return;
+                }
+
+                const role = await message.guild.roles.fetch(userRoles.roleId);
+                if (role) {
+                    await role.delete();
+                }
+
+                delete rolesData[message.member.id];
+                saveRolesData();
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully deleted your custom role.`);
+                return;
             }
         }
 
@@ -209,7 +240,8 @@ client.on('messageCreate', async message => {
                     { name: 'Update Role Name', value: '`role name <role-name>`: Update the name of your custom role.' },
                     { name: 'Set Role Color', value: '`role color <hex-code>`: Set the color of your custom role using a hex code.' },
                     { name: 'Set Role Icon', value: '`role icon <image-link or upload>`: Set the icon of your custom role using an image link or upload.' },
-                    { name: 'Gift Role', value: '`role gift <user-mention>`: Gift your custom role to a specified user. You can gift the role to up to 4 friends if you have boosted once, and up to 10 friends if you have boosted twice.' }
+                    { name: 'Gift Role', value: '`role gift <user-mention>`: Gift your custom role to a specified user. You can gift the role to up to 4 friends if you have boosted once, and up to 10 friends if you have boosted twice.' },
+                    { name: 'Delete Role', value: '`role delete`: Delete your custom role.' }
                 )
                 .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
                 .setTimestamp();
