@@ -17,6 +17,8 @@ const client = new Client({
 const testBoostPrefix = '?'; // Prefix for test boost command
 const boostChannelId = '1201162198647590952'; // Hardcoded boost channel ID
 const serverId = '758051172803411998'; // Server ID
+const boosterRoleId = '1228815979426087052'; // Role ID for server boosters
+const commandChannelId = '1201097582244540426'; // Channel ID for the command
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -95,6 +97,62 @@ client.on('messageCreate', async message => {
             }
 
             sendBoostEmbed(user);
+        }
+    }
+
+    // Handle custom role commands for boosters
+    if (message.channel.id === commandChannelId && message.member.roles.cache.has(boosterRoleId)) {
+        const args = message.content.trim().split(/ +/);
+        const subCommand = args.shift().toLowerCase();
+
+        if (subCommand === 'custom') {
+            const subAction = args.shift().toLowerCase();
+            const subValue = args.join(' ');
+
+            let role = message.member.roles.cache.find(r => r.name.startsWith('Booster-'));
+
+            if (!role && subAction !== 'name') {
+                return message.reply('You must first create a custom role using the "custom name <role-name>" command.');
+            }
+
+            if (subAction === 'name') {
+                if (!subValue) {
+                    return message.reply('Please provide a role name.');
+                }
+                if (!role) {
+                    role = await message.guild.roles.create({
+                        name: `Booster-${subValue}`,
+                        color: '#FFFFFF',
+                        permissions: []
+                    });
+                    await message.member.roles.add(role);
+                    return message.reply(`Successfully created the role ${role.name}`);
+                } else {
+                    await role.setName(`Booster-${subValue}`);
+                    return message.reply(`Successfully updated the role name to ${role.name}`);
+                }
+            }
+
+            if (subAction === 'color') {
+                if (!/^#[0-9A-F]{6}$/i.test(subValue)) {
+                    return message.reply('Please provide a valid hex color code.');
+                }
+                await role.setColor(subValue);
+                return message.reply(`Successfully set the color to ${subValue}`);
+            }
+
+            if (subAction === 'icon') {
+                if (message.attachments.size > 0) {
+                    const iconUrl = message.attachments.first().url;
+                    await role.setIcon(iconUrl);
+                    return message.reply(`Successfully set the icon to the uploaded image.`);
+                } else if (subValue) {
+                    await role.setIcon(subValue);
+                    return message.reply(`Successfully set the icon to ${subValue}`);
+                } else {
+                    return message.reply('Please provide an image link or upload an image.');
+                }
+            }
         }
     }
 });
