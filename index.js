@@ -125,7 +125,7 @@ client.on('messageCreate', async message => {
 
         let userRoles = rolesData[message.member.id] || { roleId: null, giftedTo: [], boosts: 0 };
 
-        if (subCommand === 'custom') {
+        if (subCommand === 'role') {
             if (subAction === 'name') {
                 if (userRoles.roleId && await message.guild.roles.fetch(userRoles.roleId)) {
                     return message.reply('You can only create one custom role.');
@@ -147,7 +147,7 @@ client.on('messageCreate', async message => {
             }
 
             if (!userRoles.roleId) {
-                return message.reply('You must first create a custom role using the "custom name <role-name>" command.');
+                return message.reply('You must first create a custom role using the "role name <role-name>" command.');
             }
 
             const role = await message.guild.roles.fetch(userRoles.roleId);
@@ -174,13 +174,9 @@ client.on('messageCreate', async message => {
             }
 
             if (subAction === 'gift') {
-                const friend = await message.guild.members.fetch(subValue).catch(err => {
-                    console.error('Error fetching user:', err);
-                    return null;
-                });
-
-                if (!friend) {
-                    return message.reply('User not found.');
+                const mentionedUser = message.mentions.members.first();
+                if (!mentionedUser) {
+                    return message.reply('Please mention a user to gift the role to.');
                 }
 
                 const memberBoosts = message.member.premiumSinceTimestamp ? 1 : 0;
@@ -195,44 +191,43 @@ client.on('messageCreate', async message => {
                     return message.reply('You have reached the maximum number of gifts.');
                 }
 
-                await friend.roles.add(role);
-                userRoles.giftedTo.push(friend.id);
+                await mentionedUser.roles.add(role);
+                userRoles.giftedTo.push(mentionedUser.id);
                 rolesData[message.member.id] = userRoles;
                 saveRolesData();
-                return message.reply(`Successfully gifted the role to ${friend.user.tag}`);
+                return message.reply(`Successfully gifted the role to ${mentionedUser.user.tag} ${userRoles.giftedTo.length}/${maxGifts}`);
             }
         }
-    }
 
-    // Handle boost help command
-    if (subCommand === 'boost' && subAction === 'help') {
-        const embed = new EmbedBuilder()
-            .setTitle('Boosting Roles Help')
-            .setDescription('Here is the full help about the boosting roles:')
-            .addFields(
-                { name: 'Create Custom Role', value: '`custom name <role-name>`: Create a custom role with the specified name.' },
-                { name: 'Update Role Name', value: '`custom name <role-name>`: Update the name of your custom role.' },
-                { name: 'Set Role Color', value: '`custom color <hex-code>`: Set the color of your custom role using a hex code.' },
-                { name: 'Set Role Icon', value: '`custom icon <image-link or upload>`: Set the icon of your custom role using an image link or upload.' },
-                { name: 'Gift Role', value: '`custom gift <user-id>`: Gift your custom role to a specified user. You can gift the role to up to 4 friends if you have boosted once, and up to 10 friends if you have boosted twice.' }
-            )
-            .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
-            .setTimestamp();
+        // Handle boost help command
+        if (subCommand === 'boost' && subAction === 'help') {
+            const embed = new EmbedBuilder()
+                .setTitle('Boosting Roles Help')
+                .setDescription('Here is the full help about the boosting roles:')
+                .addFields(
+                    { name: 'Create Custom Role', value: '`role name <role-name>`: Create a custom role with the specified name.' },
+                    { name: 'Update Role Name', value: '`role name <role-name>`: Update the name of your custom role.' },
+                    { name: 'Set Role Color', value: '`role color <hex-code>`: Set the color of your custom role using a hex code.' },
+                    { name: 'Set Role Icon', value: '`role icon <image-link or upload>`: Set the icon of your custom role using an image link or upload.' },
+                    { name: 'Gift Role', value: '`role gift <user-mention>`: Gift your custom role to a specified user. You can gift the role to up to 4 friends if you have boosted once, and up to 10 friends if you have boosted twice.' }
+                )
+                .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
+                .setTimestamp();
 
-        return message.reply({ embeds: [embed] });
+            return message.reply({ embeds: [embed] });
+        }
     }
-}
 });
 
 // Button interaction listener
 client.on('interactionCreate', async interaction => {
-if (!interaction.isButton()) return;
+    if (!interaction.isButton()) return;
 
-if (interaction.customId === 'boosting_advantages') {
-    if (!interaction.replied) {
-        await interaction.reply({ content: 'Check the boosting advantages from here: <#1201478443532029974>', ephemeral: true });
+    if (interaction.customId === 'boosting_advantages') {
+        if (!interaction.replied) {
+            await interaction.reply({ content: 'Check the boosting advantages from here: <#1201478443532029974>', ephemeral: true });
+        }
     }
-}
 });
 
 client.login(process.env.DISCORD_TOKEN);
