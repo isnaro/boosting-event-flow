@@ -195,16 +195,22 @@ client.on('messageCreate', async message => {
         let userRoles = rolesData[message.member.id] || { roleId: null, giftedTo: [], boosts: 0 };
 
         if (subCommand === 'role') {
-            const loadingMessage = await message.reply('<a:FLOW_Boosts:1240791270822117386>');
-
             if (subAction === 'create') {
                 if (userRoles.roleId && await message.guild.roles.fetch(userRoles.roleId)) {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You can only create one custom role.`);
-                    return;
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Creation Failed')
+                        .setDescription('You can only create one custom role.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    return message.reply({ embeds: [embed] });
                 }
                 if (!subValue) {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please provide a role name.`);
-                    return;
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Creation Failed')
+                        .setDescription('Please provide a role name.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    return message.reply({ embeds: [embed] });
                 }
                 const role = await message.guild.roles.create({
                     name: subValue,
@@ -216,12 +222,22 @@ client.on('messageCreate', async message => {
                 userRoles.roleId = role.id;
                 rolesData[message.member.id] = userRoles;
                 saveRolesData();
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully created the role **${role.name}**`);
+                const embed = new EmbedBuilder()
+                    .setTitle('Role Created')
+                    .setDescription(`Successfully created the role **${role.name}**. Write 'accept' to confirm.`)
+                    .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                    .setTimestamp();
+                await message.reply({ embeds: [embed] });
                 return;
             }
 
             if (!userRoles.roleId) {
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You must first create a custom role using the \`role create <role-name>\` command.`);
+                const embed = new EmbedBuilder()
+                    .setTitle('Role Management Failed')
+                    .setDescription('You must first create a custom role using the `role create <role-name>` command.')
+                    .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                    .setTimestamp();
+                await message.reply({ embeds: [embed] });
                 return;
             }
 
@@ -229,36 +245,119 @@ client.on('messageCreate', async message => {
 
             if (subAction === 'name') {
                 if (!subValue) {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please provide a new role name.`);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Management Failed')
+                        .setDescription('Please provide a new role name.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
                     return;
                 }
-                await role.setName(subValue);
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully updated the role name to **${subValue}**`);
+                const embed = new EmbedBuilder()
+                    .setTitle('Confirm Role Name Change')
+                    .setDescription(`You are about to change the role name to **${subValue}**. Write 'accept' to confirm.`)
+                    .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                    .setTimestamp();
+                await message.reply({ embeds: [embed] });
+
+                const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
+                const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
+
+                collector.on('collect', async () => {
+                    await role.setName(subValue);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Name Updated')
+                        .setDescription(`Successfully updated the role name to **${subValue}**.`)
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
+                });
                 return;
             }
 
             if (subAction === 'color') {
                 if (!/^#[0-9A-F]{6}$/i.test(subValue)) {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please provide a valid hex color code.`);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Management Failed')
+                        .setDescription('Please provide a valid hex color code.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
                     return;
                 }
-                await role.setColor(subValue);
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully set the color to **${subValue}**`);
+                const embed = new EmbedBuilder()
+                    .setTitle('Confirm Role Color Change')
+                    .setDescription(`You are about to change the role color to **${subValue}**. Write 'accept' to confirm.`)
+                    .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                    .setTimestamp();
+                await message.reply({ embeds: [embed] });
+
+                const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
+                const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
+
+                collector.on('collect', async () => {
+                    await role.setColor(subValue);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Color Updated')
+                        .setDescription(`Successfully set the color to **${subValue}**.`)
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
+                });
                 return;
             }
 
             if (subAction === 'icon') {
                 if (message.attachments.size > 0) {
                     const iconUrl = message.attachments.first().url;
-                    await role.setIcon(iconUrl);
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully set the icon to the uploaded image.`);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Confirm Role Icon Change')
+                        .setDescription('You are about to change the role icon to the uploaded image. Write \'accept\' to confirm.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
+
+                    const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
+                    const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
+
+                    collector.on('collect', async () => {
+                        await role.setIcon(iconUrl);
+                        const embed = new EmbedBuilder()
+                            .setTitle('Role Icon Updated')
+                            .setDescription('Successfully set the icon to the uploaded image.')
+                            .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                            .setTimestamp();
+                        await message.reply({ embeds: [embed] });
+                    });
                     return;
                 } else if (subValue) {
-                    await role.setIcon(subValue);
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully set the icon to ${subValue}`);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Confirm Role Icon Change')
+                        .setDescription(`You are about to change the role icon to **${subValue}**. Write 'accept' to confirm.`)
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
+
+                    const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
+                    const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
+
+                    collector.on('collect', async () => {
+                        await role.setIcon(subValue);
+                        const embed = new EmbedBuilder()
+                            .setTitle('Role Icon Updated')
+                            .setDescription(`Successfully set the icon to **${subValue}**.`)
+                            .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                            .setTimestamp();
+                        await message.reply({ embeds: [embed] });
+                    });
                     return;
                 } else {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please provide an image link or upload an image.`);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Management Failed')
+                        .setDescription('Please provide an image link or upload an image.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
                     return;
                 }
             }
@@ -266,7 +365,12 @@ client.on('messageCreate', async message => {
             if (subAction === 'gift') {
                 const mentionedUser = message.mentions.members.first();
                 if (!mentionedUser) {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please mention a user to gift the role to.`);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Management Failed')
+                        .setDescription('Please mention a user to gift the role to.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
                     return;
                 }
 
@@ -274,58 +378,134 @@ client.on('messageCreate', async message => {
                 const maxGifts = isPremium ? 10 : 3;
 
                 if (userRoles.giftedTo.length >= maxGifts) {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You have reached the maximum number of gifts.`);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Management Failed')
+                        .setDescription('You have reached the maximum number of gifts.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
                     return;
                 }
 
-                await mentionedUser.roles.add(role);
-                userRoles.giftedTo.push(mentionedUser.id);
-                rolesData[message.member.id] = userRoles;
-                saveRolesData();
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully gifted the role to ${mentionedUser.user.tag} ${userRoles.giftedTo.length}/${maxGifts}`);
+                const embed = new EmbedBuilder()
+                    .setTitle('Confirm Role Gift')
+                    .setDescription(`You are about to gift the role to ${mentionedUser.user.tag}. Write 'accept' to confirm.`)
+                    .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                    .setTimestamp();
+                await message.reply({ embeds: [embed] });
+
+                const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
+                const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
+
+                collector.on('collect', async () => {
+                    await mentionedUser.roles.add(role);
+                    userRoles.giftedTo.push(mentionedUser.id);
+                    rolesData[message.member.id] = userRoles;
+                    saveRolesData();
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Gifted')
+                        .setDescription(`Successfully gifted the role to ${mentionedUser.user.tag}. ${userRoles.giftedTo.length}/${maxGifts}`)
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
+                });
                 return;
             }
 
             if (subAction === 'delete') {
                 if (!userRoles.roleId) {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You don't have a custom role to delete.`);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Management Failed')
+                        .setDescription('You don\'t have a custom role to delete.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
                     return;
                 }
 
-                const role = await message.guild.roles.fetch(userRoles.roleId);
-                if (role) {
-                    await role.delete();
-                }
+                const embed = new EmbedBuilder()
+                    .setTitle('Confirm Role Deletion')
+                    .setDescription('You are about to delete your custom role. Write \'accept\' to confirm.')
+                    .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                    .setTimestamp();
+                await message.reply({ embeds: [embed] });
 
-                delete rolesData[message.member.id];
-                saveRolesData();
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully deleted your custom role.`);
+                const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
+                const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
+
+                collector.on('collect', async () => {
+                    const role = await message.guild.roles.fetch(userRoles.roleId);
+                    if (role) {
+                        await role.delete();
+                    }
+
+                    delete rolesData[message.member.id];
+                    saveRolesData();
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Deleted')
+                        .setDescription('Successfully deleted your custom role.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
+                });
                 return;
             }
 
             if (subAction === 'remove') {
                 const mentionedUser = message.mentions.members.first();
                 if (!mentionedUser) {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please mention a user to remove the role from.`);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Management Failed')
+                        .setDescription('Please mention a user to remove the role from.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
                     return;
                 }
 
                 if (!userRoles.giftedTo.includes(mentionedUser.id)) {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> The mentioned user does not have the role.`);
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Management Failed')
+                        .setDescription('The mentioned user does not have the role.')
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
                     return;
                 }
 
-                const role = await message.guild.roles.fetch(userRoles.roleId);
-                if (!role) {
-                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Custom role not found.`);
-                    return;
-                }
+                const embed = new EmbedBuilder()
+                    .setTitle('Confirm Role Removal')
+                    .setDescription(`You are about to remove the role from ${mentionedUser.user.tag}. Write 'accept' to confirm.`)
+                    .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                    .setTimestamp();
+                await message.reply({ embeds: [embed] });
 
-                await mentionedUser.roles.remove(role);
-                userRoles.giftedTo = userRoles.giftedTo.filter(id => id !== mentionedUser.id);
-                rolesData[message.member.id] = userRoles;
-                saveRolesData();
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully removed the role from ${mentionedUser.user.tag}.`);
+                const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
+                const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
+
+                collector.on('collect', async () => {
+                    const role = await message.guild.roles.fetch(userRoles.roleId);
+                    if (!role) {
+                        const embed = new EmbedBuilder()
+                            .setTitle('Role Management Failed')
+                            .setDescription('Custom role not found.')
+                            .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                            .setTimestamp();
+                        await message.reply({ embeds: [embed] });
+                        return;
+                    }
+
+                    await mentionedUser.roles.remove(role);
+                    userRoles.giftedTo = userRoles.giftedTo.filter(id => id !== mentionedUser.id);
+                    rolesData[message.member.id] = userRoles;
+                    saveRolesData();
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Removed')
+                        .setDescription(`Successfully removed the role from ${mentionedUser.user.tag}.`)
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
+                });
                 return;
             }
         }
