@@ -195,6 +195,8 @@ client.on('messageCreate', async message => {
         let userRoles = rolesData[message.member.id] || { roleId: null, giftedTo: [], boosts: 0 };
 
         if (subCommand === 'role') {
+            const loadingMessage = await message.reply('<a:FLOW_Boosts:1240791270822117386> Loading...');
+
             if (subAction === 'create') {
                 if (userRoles.roleId && await message.guild.roles.fetch(userRoles.roleId)) {
                     const embed = new EmbedBuilder()
@@ -202,7 +204,7 @@ client.on('messageCreate', async message => {
                         .setDescription('You can only create one custom role.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    return message.reply({ embeds: [embed] });
+                    return loadingMessage.edit({ content: '', embeds: [embed] });
                 }
                 if (!subValue) {
                     const embed = new EmbedBuilder()
@@ -210,7 +212,7 @@ client.on('messageCreate', async message => {
                         .setDescription('Please provide a role name.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    return message.reply({ embeds: [embed] });
+                    return loadingMessage.edit({ content: '', embeds: [embed] });
                 }
                 const role = await message.guild.roles.create({
                     name: subValue,
@@ -227,7 +229,19 @@ client.on('messageCreate', async message => {
                     .setDescription(`Successfully created the role **${role.name}**. Write 'accept' to confirm.`)
                     .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                     .setTimestamp();
-                await message.reply({ embeds: [embed] });
+                await loadingMessage.edit({ content: '<a:FLOW_Boosts:1240791270822117386>', embeds: [embed] });
+
+                const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
+                const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
+
+                collector.on('collect', async () => {
+                    const embed = new EmbedBuilder()
+                        .setTitle('Role Created')
+                        .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully created the role **${role.name}**.`)
+                        .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
+                        .setTimestamp();
+                    await message.reply({ embeds: [embed] });
+                });
                 return;
             }
 
@@ -237,7 +251,7 @@ client.on('messageCreate', async message => {
                     .setDescription('You must first create a custom role using the `role create <role-name>` command.')
                     .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                     .setTimestamp();
-                await message.reply({ embeds: [embed] });
+                await loadingMessage.edit({ content: '', embeds: [embed] });
                 return;
             }
 
@@ -250,7 +264,7 @@ client.on('messageCreate', async message => {
                         .setDescription('Please provide a new role name.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await loadingMessage.edit({ content: '', embeds: [embed] });
                     return;
                 }
                 const embed = new EmbedBuilder()
@@ -258,7 +272,7 @@ client.on('messageCreate', async message => {
                     .setDescription(`You are about to change the role name to **${subValue}**. Write 'accept' to confirm.`)
                     .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                     .setTimestamp();
-                await message.reply({ embeds: [embed] });
+                await loadingMessage.edit({ content: '<a:FLOW_Boosts:1240791270822117386>', embeds: [embed] });
 
                 const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
                 const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
@@ -267,7 +281,7 @@ client.on('messageCreate', async message => {
                     await role.setName(subValue);
                     const embed = new EmbedBuilder()
                         .setTitle('Role Name Updated')
-                        .setDescription(`Successfully updated the role name to **${subValue}**.`)
+                        .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully updated the role name to **${subValue}**.`)
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
                     await message.reply({ embeds: [embed] });
@@ -282,7 +296,7 @@ client.on('messageCreate', async message => {
                         .setDescription('Please provide a valid hex color code.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await loadingMessage.edit({ content: '', embeds: [embed] });
                     return;
                 }
                 const embed = new EmbedBuilder()
@@ -290,7 +304,7 @@ client.on('messageCreate', async message => {
                     .setDescription(`You are about to change the role color to **${subValue}**. Write 'accept' to confirm.`)
                     .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                     .setTimestamp();
-                await message.reply({ embeds: [embed] });
+                await loadingMessage.edit({ content: '<a:FLOW_Boosts:1240791270822117386>', embeds: [embed] });
 
                 const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
                 const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
@@ -299,7 +313,7 @@ client.on('messageCreate', async message => {
                     await role.setColor(subValue);
                     const embed = new EmbedBuilder()
                         .setTitle('Role Color Updated')
-                        .setDescription(`Successfully set the color to **${subValue}**.`)
+                        .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully set the color to **${subValue}**.`)
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
                     await message.reply({ embeds: [embed] });
@@ -315,7 +329,7 @@ client.on('messageCreate', async message => {
                         .setDescription('You are about to change the role icon to the uploaded image. Write \'accept\' to confirm.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await loadingMessage.edit({ content: '<a:FLOW_Boosts:1240791270822117386>', embeds: [embed] });
 
                     const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
                     const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
@@ -324,7 +338,7 @@ client.on('messageCreate', async message => {
                         await role.setIcon(iconUrl);
                         const embed = new EmbedBuilder()
                             .setTitle('Role Icon Updated')
-                            .setDescription('Successfully set the icon to the uploaded image.')
+                            .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully set the icon to the uploaded image.`)
                             .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                             .setTimestamp();
                         await message.reply({ embeds: [embed] });
@@ -336,7 +350,7 @@ client.on('messageCreate', async message => {
                         .setDescription(`You are about to change the role icon to **${subValue}**. Write 'accept' to confirm.`)
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await loadingMessage.edit({ content: '<a:FLOW_Boosts:1240791270822117386>', embeds: [embed] });
 
                     const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
                     const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
@@ -345,7 +359,7 @@ client.on('messageCreate', async message => {
                         await role.setIcon(subValue);
                         const embed = new EmbedBuilder()
                             .setTitle('Role Icon Updated')
-                            .setDescription(`Successfully set the icon to **${subValue}**.`)
+                            .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully set the icon to **${subValue}**.`)
                             .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                             .setTimestamp();
                         await message.reply({ embeds: [embed] });
@@ -357,7 +371,7 @@ client.on('messageCreate', async message => {
                         .setDescription('Please provide an image link or upload an image.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await loadingMessage.edit({ content: '', embeds: [embed] });
                     return;
                 }
             }
@@ -370,7 +384,7 @@ client.on('messageCreate', async message => {
                         .setDescription('Please mention a user to gift the role to.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await loadingMessage.edit({ content: '', embeds: [embed] });
                     return;
                 }
 
@@ -383,7 +397,7 @@ client.on('messageCreate', async message => {
                         .setDescription('You have reached the maximum number of gifts.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await loadingMessage.edit({ content: '', embeds: [embed] });
                     return;
                 }
 
@@ -392,7 +406,7 @@ client.on('messageCreate', async message => {
                     .setDescription(`You are about to gift the role to ${mentionedUser.user.tag}. Write 'accept' to confirm.`)
                     .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                     .setTimestamp();
-                await message.reply({ embeds: [embed] });
+                await loadingMessage.edit({ content: '<a:FLOW_Boosts:1240791270822117386>', embeds: [embed] });
 
                 const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
                 const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
@@ -404,7 +418,7 @@ client.on('messageCreate', async message => {
                     saveRolesData();
                     const embed = new EmbedBuilder()
                         .setTitle('Role Gifted')
-                        .setDescription(`Successfully gifted the role to ${mentionedUser.user.tag}. ${userRoles.giftedTo.length}/${maxGifts}`)
+                        .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully gifted the role to ${mentionedUser.user.tag}. ${userRoles.giftedTo.length}/${maxGifts}`)
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
                     await message.reply({ embeds: [embed] });
@@ -419,7 +433,7 @@ client.on('messageCreate', async message => {
                         .setDescription('You don\'t have a custom role to delete.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await loadingMessage.edit({ content: '', embeds: [embed] });
                     return;
                 }
 
@@ -428,7 +442,7 @@ client.on('messageCreate', async message => {
                     .setDescription('You are about to delete your custom role. Write \'accept\' to confirm.')
                     .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                     .setTimestamp();
-                await message.reply({ embeds: [embed] });
+                await loadingMessage.edit({ content: '<a:FLOW_Boosts:1240791270822117386>', embeds: [embed] });
 
                 const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
                 const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
@@ -443,7 +457,7 @@ client.on('messageCreate', async message => {
                     saveRolesData();
                     const embed = new EmbedBuilder()
                         .setTitle('Role Deleted')
-                        .setDescription('Successfully deleted your custom role.')
+                        .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully deleted your custom role.`)
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
                     await message.reply({ embeds: [embed] });
@@ -459,7 +473,7 @@ client.on('messageCreate', async message => {
                         .setDescription('Please mention a user to remove the role from.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await loadingMessage.edit({ content: '', embeds: [embed] });
                     return;
                 }
 
@@ -469,7 +483,7 @@ client.on('messageCreate', async message => {
                         .setDescription('The mentioned user does not have the role.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await loadingMessage.edit({ content: '', embeds: [embed] });
                     return;
                 }
 
@@ -478,7 +492,7 @@ client.on('messageCreate', async message => {
                     .setDescription(`You are about to remove the role from ${mentionedUser.user.tag}. Write 'accept' to confirm.`)
                     .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                     .setTimestamp();
-                await message.reply({ embeds: [embed] });
+                await loadingMessage.edit({ content: '<a:FLOW_Boosts:1240791270822117386>', embeds: [embed] });
 
                 const filter = m => m.author.id === message.author.id && m.content.toLowerCase() === 'accept';
                 const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
@@ -501,7 +515,7 @@ client.on('messageCreate', async message => {
                     saveRolesData();
                     const embed = new EmbedBuilder()
                         .setTitle('Role Removed')
-                        .setDescription(`Successfully removed the role from ${mentionedUser.user.tag}.`)
+                        .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully removed the role from ${mentionedUser.user.tag}.`)
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
                     await message.reply({ embeds: [embed] });
