@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits, Partials, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
+const moment = require('moment-timezone');
 require('dotenv').config();
 const keepAlive = require('./keep_alive'); // Import keep_alive.js
 
@@ -49,14 +50,15 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
     if (!oldMember.premiumSince && newMember.premiumSince) {
         console.log(`Member ${newMember.user.tag} has started boosting in guild ${newMember.guild.id}.`);
         if (newMember.guild.id === serverId) {
-            handleBoostUpdate(newMember);
+            await handleBoostUpdate(newMember);
+            await sendBoostEmbed(newMember);
         } else {
             console.log(`Boost not in target guild: ${newMember.guild.id}`);
         }
     } else if (oldMember.premiumSince && !newMember.premiumSince) {
         console.log(`Member ${newMember.user.tag} has stopped boosting in guild ${newMember.guild.id}.`);
         if (newMember.guild.id === serverId) {
-            handleBoostRemoval(newMember);
+            await handleBoostRemoval(newMember);
         } else {
             console.log(`Boost removal not in target guild: ${newMember.guild.id}`);
         }
@@ -122,6 +124,43 @@ async function updateGiftingLimits(member) {
     }
 }
 
+// Function to send boost embed
+async function sendBoostEmbed(member) {
+    try {
+        if (!member.guild) {
+            console.error('Guild not found for member');
+            return;
+        }
+
+        const boostChannel = member.guild.channels.cache.get(boostChannelId);
+        if (!boostChannel) {
+            console.error('Boost channel not found');
+            return;
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle('NEW Server Boost!')
+            .setDescription(`A big thanks to ${member} for helping out with the Flow server upgrade! The community will really appreciate it`)
+            .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+            .setImage('https://media.discordapp.net/attachments/470983675157151755/1229087659977085078/mf8Uagt.png?ex=66569dd5&is=66554c55&hm=bbbbf8319f421641ce5a9762eaddd701a03e50479d377fdeb545e16d359973c6&format=webp&quality=lossless&width=889&height=554&')
+            .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
+            .setTimestamp();
+
+        const boostButton = new ButtonBuilder()
+            .setStyle(ButtonStyle.Primary)
+            .setLabel('Boosting Advantages')
+            .setEmoji('1229089677630505032')
+            .setCustomId('boosting_advantages');
+
+        const row = new ActionRowBuilder().addComponents(boostButton);
+
+        await boostChannel.send({ embeds: [embed], components: [row] });
+        console.log(`Boost embed sent to channel ${boostChannelId}`);
+    } catch (error) {
+        console.error('Error sending boost embed:', error);
+    }
+}
+
 // Command to manually send the boost embed for testing
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
@@ -158,7 +197,7 @@ client.on('messageCreate', async message => {
         if (subCommand === 'role') {
             const loadingMessage = await message.reply('<a:FLOW_Boosts:1240791270822117386>');
 
-            if (subAction === 'name') {
+            if (subAction === 'create') {
                 if (userRoles.roleId && await message.guild.roles.fetch(userRoles.roleId)) {
                     await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You can only create one custom role.`);
                     return;
@@ -182,11 +221,21 @@ client.on('messageCreate', async message => {
             }
 
             if (!userRoles.roleId) {
-                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You must first create a custom role using the \`role name <role-name>\` command.`);
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> You must first create a custom role using the \`role create <role-name>\` command.`);
                 return;
             }
 
             const role = await message.guild.roles.fetch(userRoles.roleId);
+
+            if (subAction === 'name') {
+                if (!subValue) {
+                    await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Please provide a new role name.`);
+                    return;
+                }
+                await role.setName(subValue);
+                await loadingMessage.edit(`<a:FLOW_verifed:1238504822676656218> Successfully updated the role name to **${subValue}**`);
+                return;
+            }
 
             if (subAction === 'color') {
                 if (!/^#[0-9A-F]{6}$/i.test(subValue)) {
@@ -213,6 +262,7 @@ client.on('messageCreate', async message => {
                     return;
                 }
             }
+
             if (subAction === 'gift') {
                 const mentionedUser = message.mentions.members.first();
                 if (!mentionedUser) {
@@ -286,7 +336,7 @@ client.on('messageCreate', async message => {
                 .setTitle('Boosting Roles Help')
                 .setDescription('Here is the full help about the boosting roles:')
                 .addFields(
-                    { name: 'Create Custom Role', value: '`role name <role-name>`: Create a custom role with the specified name.' },
+                    { name: 'Create Custom Role', value: '`role create <role-name>`: Create a custom role with the specified name.' },
                     { name: 'Update Role Name', value: '`role name <role-name>`: Update the name of your custom role.' },
                     { name: 'Set Role Color', value: '`role color <hex-code>`: Set the color of your custom role using a hex code.' },
                     { name: 'Set Role Icon', value: '`role icon <image-link or upload>`: Set the icon of your custom role using an image link or upload.' },
