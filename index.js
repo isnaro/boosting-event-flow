@@ -466,7 +466,7 @@ client.on('messageCreate', async message => {
                 pageBoosters.forEach(member => {
                     const customRole = rolesData[member.id];
                     const roleName = customRole ? `<@&${customRole.roleId}>` : 'No custom role';
-                    embed.addFields({ name: member.user.tag, value: `Boosts: ${member.premiumSubscriptionCount}\nCustom Role: ${roleName}` });
+                    embed.addFields({ name: member.user.tag, value: `Boosts: ${member.premiumSince}\nCustom Role: ${roleName}` });
                 });
 
                 return embed;
@@ -554,18 +554,22 @@ client.login(process.env.DISCORD_TOKEN);
 // Function to handle boost updates
 async function handleBoostUpdate(member) {
     const boosts = member.guild.premiumSubscriptionCount;
+
     if (boosts >= 2) {
         await member.roles.add(premiumBoosterRoleId);
         await member.roles.remove(basicBoosterRoleId);
     } else if (boosts === 1) {
         await member.roles.add(basicBoosterRoleId);
+        await member.roles.remove(premiumBoosterRoleId);
     }
+
     updateGiftingLimits(member);
 }
 
 // Function to handle boost removals
 async function handleBoostRemoval(member) {
     const boosts = member.guild.premiumSubscriptionCount;
+
     if (boosts === 1) {
         await member.roles.add(basicBoosterRoleId);
         await member.roles.remove(premiumBoosterRoleId);
@@ -607,5 +611,42 @@ async function updateGiftingLimits(member) {
             rolesData[member.id] = userRoles;
             saveRolesData();
         }
+    }
+}
+
+// Function to send boost embed
+async function sendBoostEmbed(member) {
+    try {
+        if (!member.guild) {
+            console.error('Guild not found for member');
+            return;
+        }
+
+        const boostChannel = member.guild.channels.cache.get(boostChannelId);
+        if (!boostChannel) {
+            console.error('Boost channel not found');
+            return;
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle('NEW Server Boost!')
+            .setDescription(`A big thanks to ${member} for helping out with the Flow server upgrade! The community will really appreciate it`)
+            .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+            .setImage('https://media.discordapp.net/attachments/470983675157151755/1229087659977085078/mf8Uagt.png?ex=66569dd5&is=66554c55&hm=bbbbf8319f421641ce5a9762eaddd701a03e50479d377fdeb545e16d359973c6&format=webp&quality=lossless&width=889&height=554&')
+            .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
+            .setTimestamp();
+
+        const boostButton = new ButtonBuilder()
+            .setStyle(ButtonStyle.Primary)
+            .setLabel('Boosting Advantages')
+            .setEmoji('1229089677630505032')
+            .setCustomId('boosting_advantages');
+
+        const row = new ActionRowBuilder().addComponents(boostButton);
+
+        await boostChannel.send({ embeds: [embed], components: [row] });
+        console.log(`Boost embed sent to channel ${boostChannelId}`);
+    } catch (error) {
+        console.error('Error sending boost embed:', error);
     }
 }
