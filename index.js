@@ -543,6 +543,27 @@ client.on('messageCreate', async message => {
 
             return message.reply({ embeds: [embed] });
         }
+
+        // Handle boosters list command
+        if (subCommand === 'boosters' && subAction === 'list') {
+            const boosters = message.guild.members.cache.filter(member => member.premiumSince);
+
+            if (boosters.size === 0) {
+                return message.reply('No members are currently boosting the server.');
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle('Server Boosters')
+                .setDescription('Here is the list of members currently boosting the server and the number of boosts they have:')
+                .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
+                .setTimestamp();
+
+            boosters.forEach(member => {
+                embed.addFields({ name: member.user.tag, value: `Boosts: ${member.premiumSinceTimestamp ? 1 : 0}` });
+            });
+
+            return message.reply({ embeds: [embed] });
+        }
     }
 });
 
