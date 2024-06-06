@@ -67,7 +67,7 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
 
 // Function to handle boost updates
 async function handleBoostUpdate(member) {
-    const boosts = member.premiumSinceTimestamp ? 1 : 0;
+    const boosts = member.guild.premiumSubscriptionCount;
     if (boosts >= 2) {
         await member.roles.add(premiumBoosterRoleId);
         await member.roles.remove(basicBoosterRoleId);
@@ -79,7 +79,7 @@ async function handleBoostUpdate(member) {
 
 // Function to handle boost removals
 async function handleBoostRemoval(member) {
-    const boosts = member.premiumSinceTimestamp ? 1 : 0;
+    const boosts = member.guild.premiumSubscriptionCount;
     if (boosts === 1) {
         await member.roles.add(basicBoosterRoleId);
         await member.roles.remove(premiumBoosterRoleId);
@@ -235,12 +235,12 @@ client.on('messageCreate', async message => {
                 const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
 
                 collector.on('collect', async () => {
-                    const embed = new EmbedBuilder()
+                    const successEmbed = new EmbedBuilder()
                         .setTitle('Role Created')
-                        .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully created the role **${role.name}**.`)
+                        .setDescription('<a:FLOW_verifed:1238504822676656218> Successfully created the role.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await message.reply({ embeds: [successEmbed] });
                 });
                 return;
             }
@@ -279,12 +279,12 @@ client.on('messageCreate', async message => {
 
                 collector.on('collect', async () => {
                     await role.setName(subValue);
-                    const embed = new EmbedBuilder()
+                    const successEmbed = new EmbedBuilder()
                         .setTitle('Role Name Updated')
                         .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully updated the role name to **${subValue}**.`)
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await message.reply({ embeds: [successEmbed] });
                 });
                 return;
             }
@@ -311,12 +311,12 @@ client.on('messageCreate', async message => {
 
                 collector.on('collect', async () => {
                     await role.setColor(subValue);
-                    const embed = new EmbedBuilder()
+                    const successEmbed = new EmbedBuilder()
                         .setTitle('Role Color Updated')
                         .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully set the color to **${subValue}**.`)
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await message.reply({ embeds: [successEmbed] });
                 });
                 return;
             }
@@ -336,12 +336,12 @@ client.on('messageCreate', async message => {
 
                     collector.on('collect', async () => {
                         await role.setIcon(iconUrl);
-                        const embed = new EmbedBuilder()
+                        const successEmbed = new EmbedBuilder()
                             .setTitle('Role Icon Updated')
-                            .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully set the icon to the uploaded image.`)
+                            .setDescription('<a:FLOW_verifed:1238504822676656218> Successfully set the icon to the uploaded image.')
                             .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                             .setTimestamp();
-                        await message.reply({ embeds: [embed] });
+                        await message.reply({ embeds: [successEmbed] });
                     });
                     return;
                 } else if (subValue) {
@@ -357,12 +357,12 @@ client.on('messageCreate', async message => {
 
                     collector.on('collect', async () => {
                         await role.setIcon(subValue);
-                        const embed = new EmbedBuilder()
+                        const successEmbed = new EmbedBuilder()
                             .setTitle('Role Icon Updated')
                             .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully set the icon to **${subValue}**.`)
                             .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                             .setTimestamp();
-                        await message.reply({ embeds: [embed] });
+                        await message.reply({ embeds: [successEmbed] });
                     });
                     return;
                 } else {
@@ -416,12 +416,12 @@ client.on('messageCreate', async message => {
                     userRoles.giftedTo.push(mentionedUser.id);
                     rolesData[message.member.id] = userRoles;
                     saveRolesData();
-                    const embed = new EmbedBuilder()
+                    const successEmbed = new EmbedBuilder()
                         .setTitle('Role Gifted')
                         .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully gifted the role to ${mentionedUser.user.tag}. ${userRoles.giftedTo.length}/${maxGifts}`)
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await message.reply({ embeds: [successEmbed] });
                 });
                 return;
             }
@@ -455,12 +455,12 @@ client.on('messageCreate', async message => {
 
                     delete rolesData[message.member.id];
                     saveRolesData();
-                    const embed = new EmbedBuilder()
+                    const successEmbed = new EmbedBuilder()
                         .setTitle('Role Deleted')
-                        .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully deleted your custom role.`)
+                        .setDescription('<a:FLOW_verifed:1238504822676656218> Successfully deleted your custom role.')
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await message.reply({ embeds: [successEmbed] });
                 });
                 return;
             }
@@ -513,12 +513,12 @@ client.on('messageCreate', async message => {
                     userRoles.giftedTo = userRoles.giftedTo.filter(id => id !== mentionedUser.id);
                     rolesData[message.member.id] = userRoles;
                     saveRolesData();
-                    const embed = new EmbedBuilder()
+                    const successEmbed = new EmbedBuilder()
                         .setTitle('Role Removed')
                         .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully removed the role from ${mentionedUser.user.tag}.`)
                         .setFooter({ text: 'FLOW | ROLE MANAGEMENT' })
                         .setTimestamp();
-                    await message.reply({ embeds: [embed] });
+                    await message.reply({ embeds: [successEmbed] });
                 });
                 return;
             }
