@@ -189,7 +189,7 @@ client.on('messageCreate', async message => {
     if ((message.channel.id === commandChannelId || message.channel.id === adminCommandChannelId) && message.member.roles.cache.has(boosterRoleId)) {
         const args = message.content.trim().split(/ +/);
         const subCommand = args.shift().toLowerCase();
-        const subAction = args.shift().toLowerCase();
+        const subAction = args.length > 0 ? args.shift().toLowerCase() : null;
         const subValue = args.join(' ');
 
         let userRoles = rolesData[message.member.id] || { roleId: null, giftedTo: [], boosts: 0 };
