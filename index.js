@@ -559,8 +559,37 @@ client.on('messageCreate', async message => {
                 .setTimestamp();
 
             boosters.forEach(member => {
-                embed.addFields({ name: member.user.tag, value: `Boosts: ${member.premiumSinceTimestamp ? 1 : 0}` });
+                const customRole = rolesData[member.id];
+                const roleName = customRole ? `<@&${customRole.roleId}>` : 'No custom role';
+                embed.addFields({ name: member.user.tag, value: `Boosts: ${member.premiumSinceTimestamp ? 1 : 0}\nCustom Role: ${roleName}` });
             });
+
+            return message.reply({ embeds: [embed] });
+        }
+
+        // Handle boosters roles command
+        if (subCommand === 'boosters' && subAction === 'roles') {
+            const customRoles = Object.entries(rolesData);
+            if (customRoles.length === 0) {
+                return message.reply('No custom roles have been created by boosters.');
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle('Boosters Custom Roles')
+                .setDescription('Here is a list of all the custom roles created by boosters:')
+                .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
+                .setTimestamp();
+
+            for (const [userId, data] of customRoles) {
+                const member = await message.guild.members.fetch(userId).catch(() => null);
+                if (!member) continue;
+                const role = await message.guild.roles.fetch(data.roleId).catch(() => null);
+                if (!role) continue;
+                embed.addFields({
+                    name: role.name,
+                    value: `Owner: ${member.user.tag}\nMembers: ${role.members.size}\nCreated At: ${role.createdAt.toDateString()}`
+                });
+            }
 
             return message.reply({ embeds: [embed] });
         }
