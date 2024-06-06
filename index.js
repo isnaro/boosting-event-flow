@@ -546,6 +546,8 @@ client.on('messageCreate', async message => {
 
         // Handle boosters list command
         if (subCommand === 'boosters' && subAction === 'list') {
+            await message.guild.members.fetch(); // Ensure all members are fetched
+
             const boosters = message.guild.members.cache.filter(member => member.premiumSince);
 
             if (boosters.size === 0) {
