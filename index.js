@@ -554,19 +554,68 @@ client.on('messageCreate', async message => {
                 return message.reply('No members are currently boosting the server.');
             }
 
-            const embed = new EmbedBuilder()
-                .setTitle('Server Boosters')
-                .setDescription('Here is the list of members currently boosting the server and the number of boosts they have:')
-                .setFooter({ text: 'FLOW | BOOSTING SYSTEM' })
-                .setTimestamp();
+            // Handle pagination
+            const boostersArray = Array.from(boosters.values());
+            const pageSize = 10;
+            const totalPages = Math.ceil(boostersArray.length / pageSize);
 
-            boosters.forEach(member => {
-                const customRole = rolesData[member.id];
-                const roleName = customRole ? `<@&${customRole.roleId}>` : 'No custom role';
-                embed.addFields({ name: member.user.tag, value: `Boosts: ${member.premiumSinceTimestamp ? 1 : 0}\nCustom Role: ${roleName}` });
+            let currentPage = 0;
+
+            const generateEmbed = (page) => {
+                const embed = new EmbedBuilder()
+                    .setTitle('Server Boosters')
+                    .setDescription('Here is the list of members currently boosting the server and the number of boosts they have:')
+                    .setFooter({ text: `FLOW | BOOSTING SYSTEM | Page ${page + 1} of ${totalPages}` })
+                    .setTimestamp();
+
+                const start = page * pageSize;
+                const end = start + pageSize;
+                const pageBoosters = boostersArray.slice(start, end);
+
+                pageBoosters.forEach(member => {
+                    const customRole = rolesData[member.id];
+                    const roleName = customRole ? `<@&${customRole.roleId}>` : 'No custom role';
+                    embed.addFields({ name: member.user.tag, value: `Boosts: ${member.premiumSubscriptionCount}\nCustom Role: ${roleName}` });
+                });
+
+                return embed;
+            };
+
+            const generateButtons = (page) => {
+                return new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('previous_page')
+                            .setLabel('Previous')
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(page === 0),
+                        new ButtonBuilder()
+                            .setCustomId('next_page')
+                            .setLabel('Next')
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(page === totalPages - 1)
+                    );
+            };
+
+            const embedMessage = await message.reply({ embeds: [generateEmbed(currentPage)], components: [generateButtons(currentPage)] });
+
+            const collector = embedMessage.createMessageComponentCollector({ time: 60000 });
+
+            collector.on('collect', async interaction => {
+                if (interaction.customId === 'previous_page') {
+                    currentPage--;
+                } else if (interaction.customId === 'next_page') {
+                    currentPage++;
+                }
+
+                await interaction.update({ embeds: [generateEmbed(currentPage)], components: [generateButtons(currentPage)] });
             });
 
-            return message.reply({ embeds: [embed] });
+            collector.on('end', () => {
+                embedMessage.edit({ components: [] });
+            });
+
+            return;
         }
 
         // Handle boosters roles command
