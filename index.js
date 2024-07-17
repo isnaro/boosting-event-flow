@@ -21,7 +21,7 @@ const boosterRoleId = '1228815979426087052'; // Role ID for server boosters
 const commandChannelId = '1201097582244540426'; // Channel ID for the command
 const adminCommandChannelId = '1238929943795204156'; // Admin commands channel ID
 const rolesFilePath = './roles.json'; // Path to the roles tracking file
-const boosterParentRoleId = '1230560850201415680'; // Parent role ID under which custom roles should appear
+const boosterParentRoleId = '1252035185382260786'; // Parent role ID under which custom roles should appear
 
 const basicBoosterRoleId = '1247590901165850767'; // ☄️・Basic Booster role ID
 const premiumBoosterRoleId = '1247588473297309718'; // 💎・Premium Booster role ID
