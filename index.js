@@ -3,6 +3,7 @@ const fs = require('fs');
 const moment = require('moment-timezone');
 require('dotenv').config();
 const keepAlive = require('./keep_alive'); // Import keep_alive.js
+const db = require('./database'); // Import the database module
 
 const client = new Client({
     intents: [
@@ -20,7 +21,6 @@ const serverId = '758051172803411998'; // Server ID
 const boosterRoleId = '1228815979426087052'; // Role ID for server boosters
 const commandChannelId = '1201097582244540426'; // Channel ID for the command
 const adminCommandChannelId = '1238929943795204156'; // Admin commands channel ID
-const rolesFilePath = './roles.json'; // Path to the roles tracking file
 const boosterParentRoleId = '1252035185382260786'; // Parent role ID under which custom roles should appear
 
 const basicBoosterRoleId = '1247590901165850767'; // ☄️・Basic Booster role ID
@@ -32,17 +32,43 @@ client.once('ready', () => {
     loadRolesData();
 });
 
-// Load roles data from file
+// Load roles data from the database
 let rolesData = {};
 function loadRolesData() {
-    if (fs.existsSync(rolesFilePath)) {
-        rolesData = JSON.parse(fs.readFileSync(rolesFilePath, 'utf8'));
-    }
+    db.serialize(() => {
+        db.all("SELECT * FROM roles", (err, rows) => {
+            if (err) {
+                console.error(err.message);
+                return;
+            }
+            rolesData = rows.reduce((acc, row) => {
+                acc[row.user_id] = {
+                    roleId: row.role_id,
+                    giftedTo: JSON.parse(row.gifted_to),
+                    boosts: row.boosts
+                };
+                return acc;
+            }, {});
+        });
+    });
 }
 
-// Save roles data to file
-function saveRolesData() {
-    fs.writeFileSync(rolesFilePath, JSON.stringify(rolesData, null, 2));
+// Save roles data to the database
+function saveRolesData(userId, roleData) {
+    const { roleId, giftedTo, boosts } = roleData;
+    db.run(`INSERT OR REPLACE INTO roles (user_id, role_id, gifted_to, boosts) VALUES (?, ?, ?, ?)`, [userId, roleId, JSON.stringify(giftedTo), boosts], (err) => {
+        if (err) {
+            console.error(err.message);
+        }
+    });
+}
+
+function deleteRoleData(userId) {
+    db.run(`DELETE FROM roles WHERE user_id = ?`, [userId], (err) => {
+        if (err) {
+            console.error(err.message);
+        }
+    });
 }
 
 // Listen for messages in the system messages channel to detect boosts
@@ -114,7 +140,7 @@ client.on('messageCreate', async message => {
                 await message.member.roles.add(role);
                 userRoles.roleId = role.id;
                 rolesData[message.member.id] = userRoles;
-                saveRolesData();
+                saveRolesData(message.member.id, userRoles);
                 const embed = new EmbedBuilder()
                     .setTitle('Role Created')
                     .setDescription(`Successfully created the role **${role.name}**. Write 'accept' to confirm.`)
@@ -306,7 +332,7 @@ client.on('messageCreate', async message => {
                     await mentionedUser.roles.add(role);
                     userRoles.giftedTo.push(mentionedUser.id);
                     rolesData[message.member.id] = userRoles;
-                    saveRolesData();
+                    saveRolesData(message.member.id, userRoles);
                     const successEmbed = new EmbedBuilder()
                         .setTitle('Role Gifted')
                         .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully gifted the role to ${mentionedUser.user.tag}. ${userRoles.giftedTo.length}/${maxGifts}`)
@@ -345,7 +371,7 @@ client.on('messageCreate', async message => {
                     }
 
                     delete rolesData[message.member.id];
-                    saveRolesData();
+                    deleteRoleData(message.member.id);
                     const successEmbed = new EmbedBuilder()
                         .setTitle('Role Deleted')
                         .setDescription('<a:FLOW_verifed:1238504822676656218> Successfully deleted your custom role.')
@@ -403,7 +429,7 @@ client.on('messageCreate', async message => {
                     await mentionedUser.roles.remove(role);
                     userRoles.giftedTo = userRoles.giftedTo.filter(id => id !== mentionedUser.id);
                     rolesData[message.member.id] = userRoles;
-                    saveRolesData();
+                    saveRolesData(message.member.id, userRoles);
                     const successEmbed = new EmbedBuilder()
                         .setTitle('Role Removed')
                         .setDescription(`<a:FLOW_verifed:1238504822676656218> Successfully removed the role from ${mentionedUser.user.tag}.`)
@@ -563,6 +589,11 @@ async function handleBoostUpdate(member) {
         await member.roles.remove(premiumBoosterRoleId);
     }
 
+    const userRoles = rolesData[member.id] || { roleId: null, giftedTo: [], boosts: 0 };
+    userRoles.boosts = boosts;
+    rolesData[member.id] = userRoles;
+    saveRolesData(member.id, userRoles);
+
     updateGiftingLimits(member);
 }
 
@@ -589,7 +620,7 @@ async function removeCustomRole(member) {
             await role.delete();
         }
         delete rolesData[member.id];
-        saveRolesData();
+        deleteRoleData(member.id);
     }
 }
 
@@ -609,7 +640,7 @@ async function updateGiftingLimits(member) {
             }
             userRoles.giftedTo = userRoles.giftedTo.slice(0, maxGifts);
             rolesData[member.id] = userRoles;
-            saveRolesData();
+            saveRolesData(member.id, userRoles);
         }
     }
 }

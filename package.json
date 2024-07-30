@@ -13,6 +13,7 @@
     "discord-buttons": "^4.0.0-deprecated",
     "discord.js": "^14.15.2",
     "express": "^4.19.2",
-    "moment-timezone": "^0.5.45"
+    "moment-timezone": "^0.5.45",
+    "sqlite3": "^5.1.7"
   }
 }
