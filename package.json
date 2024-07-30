@@ -10,11 +10,12 @@
   "license": "ISC",
   "description": "A Discord bot for verification using prefix commands.",
   "dependencies": {
+    "better-sqlite3": "^11.1.2",
     "discord-buttons": "^4.0.0-deprecated",
     "discord.js": "^14.15.2",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "moment-timezone": "^0.5.45",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.0.2"
   }
 }
